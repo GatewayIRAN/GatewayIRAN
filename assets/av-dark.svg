@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <defs>
+  <linearGradient id="gg" gradientUnits="userSpaceOnUse" x1="117" y1="31" x2="348" y2="309">
+    <stop offset="0"   stop-color="#4E7BFF"/>
+    <stop offset="0.5" stop-color="#7DA2FF"/>
+    <stop offset="1"   stop-color="#BFD4FF"/>
+  </linearGradient></defs>
+  <rect width="1000" height="1000" fill="#0D1117"/>
+  <g transform="translate(69.88 141.57) scale(2.1084)">
+    
+  <defs>
+    <mask id="a-cut" maskUnits="userSpaceOnUse" x="70" y="10" width="340" height="330">
+      <rect x="70" y="10" width="340" height="330" fill="#fff"/>
+      <rect x="286" y="95" width="114" height="48" rx="6" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#a-cut)">
+    <path fill="url(#gg)" fill-rule="evenodd"
+          d="M163 31 H302 A68 68 0 0 1 370 99 V241 A68 68 0 0 1 302 309 H163 A68 68 0 0 1 95 241 V99 A68 68 0 0 1 163 31 Z
+             M171 92 H292 A16 16 0 0 1 308 108 V232 A16 16 0 0 1 292 248 H171 A16 16 0 0 1 155 232 V108 A16 16 0 0 1 171 92 Z"/>
+  </g>
+  <path fill="url(#gg)" d="M318 143 H254 A28 28 0 0 0 254 199 H318 Z"/>
+    
+    <rect x="50" y="203" width="80" height="28" rx="14"
+          fill="#17A34A" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="217" r="4.6" fill="#FFFFFF"/>
+    <circle cx="86" cy="217" r="4.6" fill="#FFFFFF"/>
+    <rect x="50" y="237" width="80" height="28" rx="14"
+          fill="#FFFFFF" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="251" r="4.6" fill="#0B1030"/>
+    <circle cx="86" cy="251" r="4.6" fill="#0B1030"/>
+    <rect x="50" y="271" width="80" height="28" rx="14"
+          fill="#E11B2C" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="285" r="4.6" fill="#FFFFFF"/>
+    <circle cx="86" cy="285" r="4.6" fill="#FFFFFF"/>
+  </g>
+</svg>

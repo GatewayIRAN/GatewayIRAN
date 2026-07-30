@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="6" viewBox="0 0 1200 6" role="presentation">
+<defs>
+  <linearGradient id="glint" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="0">
+    <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+    <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.85"/>
+    <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+  </linearGradient>
+  <clipPath id="bar"><rect width="1200" height="6" rx="3"/></clipPath>
+</defs>
+<style>
+  @keyframes glide{0%{transform:translateX(-260px)}100%{transform:translateX(1240px)}}
+  .g{animation:glide 5.5s cubic-bezier(.4,0,.25,1) infinite}
+  @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  .p1{animation:pulse 5s ease-in-out 0s infinite}
+  .p2{animation:pulse 5s ease-in-out .55s infinite}
+  .p3{animation:pulse 5s ease-in-out 1.1s infinite}
+</style>
+<g clip-path="url(#bar)">
+  <rect class="p1" x="0"   y="0" width="400" height="6" fill="#17A34A"/>
+  <rect class="p2" x="400" y="0" width="400" height="6" fill="#8B949E"/>
+  <rect class="p3" x="800" y="0" width="400" height="6" fill="#E11B2C"/>
+  <rect class="g" x="0" y="0" width="220" height="6" fill="url(#glint)"/>
+</g>
+</svg>

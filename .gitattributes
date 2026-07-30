@@ -1,1 +1,17 @@
 * text=auto eol=lf
+
+*.sh   text eol=lf
+*.go   text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.bat  text eol=crlf
+
+*.png  binary
+*.jpg  binary
+*.woff2 binary
+
+# keep the language bar honest: docs and assets are not the project's language
+docs/**    linguist-documentation
+assets/**  linguist-documentation
+testdata/** linguist-vendored
+*.md       linguist-detectable=true
