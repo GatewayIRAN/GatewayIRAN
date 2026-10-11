@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """check_profile_face.py - the gate for the generated profile face (T-011).
 
-The profile README at content/profile/README.md is no longer written by hand:
-scripts/render_profile.py generates it from the live account API on a
-schedule. This gate exists because the owner set five rules that are easy to
-state and easy to break by accident the next time the generator is edited.
-It answers one question: does the generated face still obey all five?
+The profile README is no longer written by hand: scripts/render_profile.py
+generates it from the live account API on a schedule. The face lives at
+content/profile/README.md in the kit workspace and at the repository root in
+the profile repository GitHub actually renders; this gate follows whichever
+layout the checkout carries. The gate exists because the owner set five
+rules that are easy to state and easy to break by accident the next time the
+generator is edited. It answers one question: does the generated face still
+obey all five?
 
 Usage
   python checks/check_profile_face.py [--root DIR] [--template PATH]
@@ -164,23 +167,33 @@ def visible_text(text):
     return text
 
 
+def face_dir(root):
+    """Where the profile face lives in this checkout.
+
+    The kit workspace keeps the face under content/profile/; the profile
+    repository that GitHub renders carries it at the repository root. The
+    workspace layout is recognised first so kit checkouts behave exactly as
+    before, and the profile repository falls through to its root.
+    """
+    kit = pathlib.Path(root) / "content" / "profile"
+    return kit if kit.is_dir() else pathlib.Path(root)
+
+
 def check(root, template=None):
     root = pathlib.Path(root)
-    face = root / "content" / "profile" / "README.md"
+    face = face_dir(root) / "README.md"
     problems = []
 
     if not face.exists():
-        return [_fail(f"{face}: missing; the generated face does not exist")]
+        return _fail(f"{face}: missing; the generated face does not exist")
 
     raw = face.read_text(encoding="utf-8", errors="replace")
     prov = parse_provenance(raw)
     if prov is None:
-        return [
-            _fail(
-                f"{face}: no '<!--profile-face:v1 ... -->' provenance block; "
-                "an ungoverned generated face is not acceptable"
-            )
-        ]
+        return _fail(
+            f"{face}: no '<!--profile-face:v1 ... -->' provenance block; "
+            "an ungoverned generated face is not acceptable"
+        )
 
     body = visible_text(raw)
 
@@ -216,7 +229,7 @@ def check(root, template=None):
     # owner banned both on the face as a whole - so the assets directory is
     # scanned too, with the same denylist. A clean README cannot launder a
     # stack out of an image it embeds.
-    for asset in sorted((root / "content" / "profile" / "assets").glob("*.svg")):
+    for asset in sorted((face.parent / "assets").glob("*.svg")):
         atext = asset.read_text(encoding="utf-8", errors="replace")
         # captions only: strip every tag so colour codes and paths are ignored
         aclean = re.sub(r"<[^>]*>", " ", atext)

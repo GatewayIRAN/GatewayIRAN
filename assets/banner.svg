@@ -68,6 +68,7 @@
       <text x="622" y="315">2 stars on the list</text>
       <rect x="733" y="292" width="128" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
       <text x="797" y="315">open source</text>
+      <!--facts-end-->
     </g>
   </g>
 </svg>

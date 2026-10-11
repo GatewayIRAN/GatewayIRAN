@@ -4,8 +4,10 @@ name: profile-live
 #
 # The owner's rule (A-0044): every figure on the profile is read from the API
 # on each run, so nothing on the page is a fixed number standing for a value
-# that varies in reality. This workflow is the only writer of
-# content/profile/README.md and content/profile/assets/stats.svg.
+# that varies in reality. This workflow is the only writer of the face at the
+# repository root: README.md and assets/stats.svg (plus the banner's fact
+# pills in assets/banner.svg). The repository root is where GitHub renders
+# the profile page, so the root is what gets regenerated and committed.
 #
 # The rendered output is then re-checked by checks/check_profile_face.py, so a
 # generator change that would break one of the five owner rules fails here
@@ -41,8 +43,9 @@ jobs:
       - name: Regenerate the face from the API
         run: python scripts/render_profile.py --write
         env:
-          # the generator reads this through git's credential helper; the token
-          # is never written to a file, a log or the commit message
+          # the generator reads GITHUB_TOKEN from the environment (the runner
+          # has no git credential helper); the token is never written to a
+          # file, a log or the commit message
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Re-check the five owner rules on the fresh output
@@ -52,7 +55,7 @@ jobs:
         run: |
           git config user.name "GatewayIRAN"
           git config user.email "310923460+GatewayIRAN@users.noreply.github.com"
-          git add content/profile/README.md content/profile/assets/stats.svg
+          git add README.md assets/stats.svg assets/banner.svg
           if git diff --cached --quiet; then
             echo "face already current"
             exit 0

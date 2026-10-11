@@ -21,19 +21,23 @@ Usage
   python scripts/render_profile.py [--root DIR] [--write] [--json]
                                    [--fixture PATH]
 
-  --write     write content/profile/README.md (default: dry run, prints to
-              stdout, writes nothing)
+  --write     write the face - README.md plus assets/stats.svg and the
+              banner's fact pills - into the face directory this checkout
+              carries: content/profile/ in the kit workspace, the repository
+              root in the profile repository (which is where GitHub renders
+              it). Default: dry run, prints to stdout, writes nothing
   --json      print the fetched facts as JSON to stdout, for debugging
   --fixture   read the API responses from a recorded JSON file instead of the
               network. Used by the offline self-check and by CI when the
               network is unavailable. Must contain the same shape the fetcher
               returns.
 
-Credentials (decision D-014): the token is read from git's credential
-helper in a subprocess, exactly like every other network call in this repo.
-It is never placed in argv, never written to a file, never logged, and never
-echoed. If no token is found the generator still runs against the public API
-at a lower rate limit, which is enough for this account.
+Credentials (decision D-014): the token is read from the environment
+(GITHUB_TOKEN, as GitHub Actions provides it) or from git's credential
+helper in a subprocess. It is never placed in argv, never written to a file,
+never logged, and never echoed. If no token is found the generator still runs
+against the public API at a lower rate limit, which is enough for this
+account.
 
 Exit codes: 0 wrote or would-write, 1 fetch or render failure, 2 usage.
 """
@@ -59,26 +63,35 @@ ACTIVE_WINDOW_DAYS = 90
 
 
 def _token():
-    """Read a GitHub token from git's credential helper, in a subprocess.
+    """Read a GitHub token: environment first, then git's credential helper.
 
-    The secret appears only inside that subprocess's stdin and is returned as
-    a value we never print. Nothing is written to disk and no argv carries it.
+    GitHub Actions hands the workflow a short-lived GITHUB_TOKEN in the
+    environment and configures no git credential helper, so the helper path
+    alone finds nothing there and the render falls back to the unauthenticated
+    API, which a shared runner IP gets rate-limited out of within minutes.
+    The secret is returned as a value we never print: not in argv, not in a
+    file, not in a log (decision D-014).
     """
+    for key in ("GITHUB_TOKEN", "GH_TOKEN"):
+        value = (os.environ.get(key) or "").strip()
+        if value:
+            return value
     try:
-        r = subprocess.run(
+        # Popen, not subprocess.run: run(input=..., timeout=...) ignores its
+        # timeout on Windows when the child waits on stdin, and a hung
+        # credential helper must not hang the render.
+        proc = subprocess.Popen(
             ["git", "credential", "fill"],
-            input=(
-                "protocol=https\nhost=github.com\n\n"
-            ),
-            capture_output=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             text=True,
-            timeout=20,
         )
+        out, _ = proc.communicate(
+            "protocol=https\nhost=github.com\n\n", timeout=20)
     except Exception:
         return None
-    if r.returncode != 0:
-        return None
-    for line in (r.stdout or "").splitlines():
+    for line in (out or "").splitlines():
         if line.lower().startswith("password="):
             return line.partition("=")[2].strip() or None
     return None
@@ -435,28 +448,27 @@ def write_banner_facts(facts, picked, windowed, out_path):
         ]
         x += w + GAP
 
+    block = ("<!--facts-start-->\n      " + "\n      ".join(parts)
+             + "\n      <!--facts-end-->")
     svg = pathlib.Path(out_path)
     text = svg.read_text(encoding="utf-8")
     if "<!--BANNER_FACTS-->" in text:
-        text = text.replace("<!--BANNER_FACTS-->", "\n      ".join(parts))
-    else:
-        # already rendered once: swap the block between the marker comments
+        text = text.replace("<!--BANNER_FACTS-->", block, 1)
+    elif 'id="banner-facts">' in text:
+        # Replace whatever now sits inside the facts group - a leftover
+        # marker block, or a start marker without its end (the first
+        # insertion keyed the end marker on an exact indentation this file
+        # does not have, so that banner froze and could never refresh) -
+        # up to the group's closing tag. The scan is anchored on the group
+        # itself, never on the whitespace around it.
         text = re.sub(
-            r"<!--facts-start-->.*?<!--facts-end-->",
-            "<!--facts-start-->\n      " + "\n      ".join(parts)
-            + "\n      <!--facts-end-->",
-            text,
-            flags=re.S,
+            r'(id="banner-facts">).*?(?=\s*</g>)',
+            lambda m: m.group(1) + block,
+            text, count=1, flags=re.S,
         )
-    if "<!--facts-start-->" not in text:
-        text = text.replace(
-            '<g font-size="15" font-weight="600" fill="#cdd9ec" '
-            'text-anchor="middle" id="banner-facts">',
-            '<g font-size="15" font-weight="600" fill="#cdd9ec" '
-            'text-anchor="middle" id="banner-facts"><!--facts-start-->',
-            1,
-        )
-        text = text.replace("</g>\n    </g>", "<!--facts-end-->\n    </g>", 1)
+    else:
+        print("render_profile: banner group 'banner-facts' not found; "
+              "its fact pills would go stale (rule 3)", file=sys.stderr)
     svg.write_text(text, encoding="utf-8")
 
 
@@ -506,6 +518,18 @@ def write_stats_svg(facts, out_path):
     pathlib.Path(out_path).write_text("\n".join(parts), encoding="utf-8")
 
 
+def face_dir(root):
+    """Where the profile face lives in this checkout.
+
+    The kit workspace keeps the face under content/profile/; the profile
+    repository that GitHub renders carries it at the repository root. The
+    workspace layout is recognised first so kit checkouts behave exactly as
+    before, and the profile repository falls through to its root.
+    """
+    kit = pathlib.Path(root) / "content" / "profile"
+    return kit if kit.is_dir() else pathlib.Path(root)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=((__doc__ or "").splitlines() or [""])[0])
     ap.add_argument("--root", default=".", help="repository root (default .)")
@@ -540,11 +564,13 @@ def main(argv=None):
         print(body)
         return 0
 
-    face = root / "content" / "profile" / "README.md"
+    face = face_dir(root) / "README.md"
     face.parent.mkdir(parents=True, exist_ok=True)
     face.write_text(body, encoding="utf-8")
-    write_stats_svg(facts, face.parent / "assets" / "stats.svg")
-    write_banner_facts(facts, picked, windowed, face.parent / "assets" / "banner.svg")
+    assets = face.parent / "assets"
+    assets.mkdir(parents=True, exist_ok=True)
+    write_stats_svg(facts, assets / "stats.svg")
+    write_banner_facts(facts, picked, windowed, assets / "banner.svg")
     print(f"render_profile: wrote {face} "
           f"({len(top_full)} projects, {len(numbers)} live numbers)")
     return 0
