@@ -329,61 +329,23 @@ def render(facts, picked, windowed):
 
     a('<div align="center">')
     a('  <img src="assets/banner.svg" alt="GatewayIRAN - a live view of this account" width="100%">')
-    a('  <br><br>')
-    a('  <img src="assets/typing.svg" alt="repositories, tools, guides, scripts" height="42">')
-    a('  <br><br>')
-    a('  <b>A living view of this account, rebuilt from the GitHub API on a schedule.</b><br>')
-    a('  <sub>Nothing here is hand-maintained: the projects, the counts and the dates below')
-    a('  are read fresh on every run, so the page is never older than its own data.</sub>')
     a('</div>')
     a('')
     a('<img src="assets/divider.svg" alt="" width="100%">')
     a('')
     a('<!--profile-face:account-scope -->')
     a('')
-    a('## What this account is')
-    a('')
-    # Written from account-scope facts only. Per-project prose belongs in that
+    # No heading: the account description starts directly after the divider,
+    # written from account-scope facts only. Per-project prose belongs in that
     # project's own README; rule 5 says the face never explains one project.
     a(f'GatewayIRAN is a collection of small, self-contained open-source projects. '
       f'{acc["public_repos"]} public repositories, {len(windowed)} of them touched in the '
       f'active window. Each is maintained on its own, with its own issue tracker and its '
       f'own release stream, and there is no shared runtime to install across them.')
     a('')
-    a('The list below is not curated by hand. It is ranked on every run by recent activity '
-      f'first and stars second, so it shows what is actually alive right now. '
-      f'{len(picked)} projects are shown; the rest are one run away from appearing.')
-    a('')
     a('## In numbers')
     a('')
     a('<img src="assets/stats.svg" alt="Live account figures" width="100%">')
-    a('')
-    a('<img src="assets/divider.svg" alt="" width="100%">')
-    a('')
-    a('## Projects, ranked by activity')
-    a('')
-    a('| project | what it is | activity | stars |')
-    a('|---|---|---|---|')
-    for p in picked:
-        name = _md_escape(p["name"])
-        # Deliberately NOT the repository description. Descriptions are written
-        # per project and routinely name a stack, which would put rule 1 and
-        # rule 5 at the mercy of whatever text a future project description
-        # happens to carry. The face shows how the account maintains each
-        # project, not what a project claims about itself.
-        if p["active_days"] is None:
-            desc = "maintained in its own repository"
-        else:
-            desc = "maintained in its own repository"
-        if p["active_days"] is None:
-            act = "—"
-        elif p["active_days"] == 0:
-            act = "today"
-        elif p["active_days"] == 1:
-            act = "yesterday"
-        else:
-            act = f'{p["active_days"]}d ago'
-        a(f'| [{name}]({p["url"]}) | {desc} | {act} | {p["stars"]} |')
     a('')
     a('<img src="assets/divider.svg" alt="" width="100%">')
     a('')

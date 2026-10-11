@@ -304,11 +304,14 @@ def check(root, template=None):
         # Captions AND attribute values both count. Strip every tag so colour
         # codes and path data are ignored, then add back every quoted
         # attribute value: an href, an aria-label, a title or a data-* figure
-        # carries exactly the claim a caption would.
+        # carries exactly the claim a caption would. Double- and single-quoted
+        # values both count; oversized values are chunked so nothing is
+        # skipped.
         aclean = re.sub(r"<[^>]*>", " ", atext)
         for m in re.finditer(r">([^<]{2,60})<", atext):
             aclean += " " + m.group(1)
-        aclean += " " + " ".join(re.findall(r"\"([^\"]{2,120})\"", atext))
+        aclean += " " + " ".join(re.findall(r"\"([^\"]{2,})\"", atext))
+        aclean += " " + " ".join(re.findall(r"'([^']{2,})'", atext))
         # Rule 3 gets the same layout exemption the README scan does: x, y,
         # width, height, viewBox, font-size and the like are dimensions of the
         # page's own artwork, not quantities about the account. So for the
@@ -327,7 +330,11 @@ def check(root, template=None):
             "fill", "stroke", "stop-color", "stop-opacity",
         }
         for m in re.finditer(
-                r"([a-zA-Z-]+)\s*=\s*\"([^\"]{2,120})\"", atext):
+                r"([a-zA-Z-]+)\s*=\s*\"([^\"]{2,})\"", atext):
+            if m.group(1).lower() not in LAYOUT_ATTRS:
+                anums += " " + m.group(2)
+        for m in re.finditer(
+                r"([a-zA-Z-]+)\s*=\s*'([^']{2,})'", atext):
             if m.group(1).lower() not in LAYOUT_ATTRS:
                 anums += " " + m.group(2)
         alow = re.sub(r"https?://", " ", aclean.lower())
@@ -548,6 +555,16 @@ projects: a/b, c/d
     if run(GOOD, {"sub/bad.svg": "<svg><text>9999 repositories</text></svg>"}) == 0:
         print("SELF-TEST FAIL: rule 3 (hard-coded number in nested artwork) "
               "not caught", file=sys.stderr)
+        ok = False
+    # single-quoted and oversized attribute values are scanned too
+    if run(GOOD, {"bad.svg": "<svg data-x='9999 repositories'><text>x</text></svg>"}) == 0:
+        print("SELF-TEST FAIL: rule 3 (single-quoted SVG attribute) not caught",
+              file=sys.stderr)
+        ok = False
+    longval = ("x" * 60) + " docker " + ("y" * 60)
+    if run(GOOD, {"bad.svg": f'<svg data-x="{longval}"><text>x</text></svg>'}) == 0:
+        print("SELF-TEST FAIL: rule 1 (oversized SVG attribute) not caught",
+              file=sys.stderr)
         ok = False
     # rule 3 - a volatile number that is NOT among the provenance numbers.
     # The fixture declares repos=4 and stars=9, so 12 must fail.
