@@ -275,15 +275,35 @@ def check(root, template=None):
             break
 
     # Rule 2 - every project named must be one the generator derived this run.
-    # We only look at explicit repository-shaped mentions (owner/name) to avoid
-    # false hits, and we skip local asset paths and URLs' non-repo parts, which
-    # are layout, not a project the account is naming.
+    # Two mention shapes matter: a forge URL (github.com/owner/repo) and a bare
+    # owner/name slug. Local asset paths, layout dirs and the account's own
+    # profile/channel links are layout or the account itself, not a project the
+    # face is naming. Every surviving mention must normalize to an exact
+    # owner/name pair present in this run's provenance 'projects:' list.
+    ASSET_EXT = (".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+                 ".css", ".js", ".woff", ".woff2", ".ttf")
+    url_spans = []
+    for m in re.finditer(
+            r"\b(?:github\.com|gitlab\.com|codeberg\.org)/"
+            r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", body, re.I):
+        url_spans.append(m.span())
+        if m.group(2).lower().endswith(ASSET_EXT):
+            continue  # a file the face itself loads is layout
+        pair = f"{m.group(1)}/{m.group(2)}".lower()
+        if pair not in prov["projects"]:
+            line = low.count("\n", 0, m.start()) + 1
+            problems.append(
+                f"{face}:{line}: rule 2 (no hard-coded project): links "
+                f"{m.group(0)!r} which the generator did not derive from the "
+                "API this run"
+            )
     for m in re.finditer(r"\b[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\b", body):
+        if any(s <= m.start() < e for s, e in url_spans):
+            continue  # already judged as a URL pair above
         mention = m.group(0)
         stem = mention.split("/")[-1].lower()
         # an asset the face itself loads is layout, not a project mention
-        if stem.endswith((".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
-                          ".css", ".js", ".woff", ".woff2", ".ttf")):
+        if stem.endswith(ASSET_EXT):
             continue
         # a bare relative path with no extension in a known layout dir
         head = mention.split("/")[0].lower()
@@ -291,10 +311,10 @@ def check(root, template=None):
             continue
         # the account's own profile link and channel link are the account
         # itself, not a project the face is naming
-        if head.lower() in ("github.com", "t.me", "gitlab.com", "codeberg.org"):
+        if head in ("github.com", "t.me", "gitlab.com", "codeberg.org"):
             continue
-        name = stem
-        if name not in prov["projects"]:
+        # the mention must BE a derived pair, owner and repo together
+        if mention.lower() not in prov["projects"]:
             line = low.count("\n", 0, m.start()) + 1
             problems.append(
                 f"{face}:{line}: rule 2 (no hard-coded project): mentions "
@@ -371,6 +391,27 @@ projects: a/b, c/d
     # rule 2
     if run(GOOD.replace("refreshed on every run", "see x/y here")) == 0:
         print("SELF-TEST FAIL: rule 2 (hard-coded project) not caught", file=sys.stderr)
+        ok = False
+    # rule 2 - a hard-coded project disguised as a forge URL must also fail
+    if run(GOOD.replace("refreshed on every run",
+                        "see https://github.com/x/y here")) == 0:
+        print("SELF-TEST FAIL: rule 2 (hard-coded project URL) not caught",
+              file=sys.stderr)
+        ok = False
+    # rule 2 controls - derived mentions stay legal, in both shapes
+    if run(GOOD.replace("refreshed on every run", "see a/b here")) != 0:
+        print("SELF-TEST FAIL: rule 2 rejected a derived bare mention",
+              file=sys.stderr)
+        ok = False
+    if run(GOOD.replace("refreshed on every run",
+                        "see https://github.com/a/b here")) != 0:
+        print("SELF-TEST FAIL: rule 2 rejected a derived URL mention",
+              file=sys.stderr)
+        ok = False
+    if run(GOOD.replace("refreshed on every run",
+                        "channel at https://t.me/a")) != 0:
+        print("SELF-TEST FAIL: rule 2 rejected the account channel link",
+              file=sys.stderr)
         ok = False
     # rule 3 - a volatile number that is NOT among the provenance numbers.
     # The fixture declares repos=4 and stars=9, so 12 must fail.
