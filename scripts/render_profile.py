@@ -391,11 +391,13 @@ def write_banner_facts(facts, picked, windowed, out_path):
     """
     acc = facts["account"]
     stars = sum(p["stars"] for p in picked)
+    # Only genuinely live figures. The old fourth pill was the static tag
+    # "open source" - not a number the run can recompute, and it bled up to
+    # the logo; drop it so the row carries only data that refreshes each run.
     pills = [
         str(acc["public_repos"]) + " public repositories",
         str(len(windowed)) + " active this period",
         str(stars) + " stars on the list",
-        "open source",
     ]
 
     W, GAP, X0, Y, H = 270, 12, 80, 292, 36
