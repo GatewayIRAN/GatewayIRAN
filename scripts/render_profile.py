@@ -146,6 +146,43 @@ def _gh_once(path, token, params=""):
         ) from e
 
 
+def scrape_telegram_members(attempts=3):
+    """Scrape the Telegram channel's live subscriber count from t.me/s/<channel>.
+
+    Returns the integer count, or None if the page is unreachable / the
+    expected div is absent. This is not the GitHub followers count; it is the
+    number shown on the channel's public preview page, updated on each render.
+    """
+    import urllib.request
+
+    url = f"https://t.me/s/{ACCOUNT}"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+    }
+    for i in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            html = urllib.request.urlopen(req, timeout=20).read().decode("utf-8", "replace")
+            # The channel page embeds: <div class="tgme_header_counter">981 subscribers</div>
+            m = re.search(r'tgme_header_counter[^>]*>(\d[\d,.\s\u00a0]*)\s*(?:subscribers|members)', html, re.I)
+            if not m:
+                # Fallback: look for any digit block followed by "subscribers"
+                m = re.search(r'(\d[\d,.\s\u00a0]*)\s*subscribers', html, re.I)
+            if m:
+                digits = re.sub(r"[^\d]", "", m.group(1))
+                if digits:
+                    return int(digits)
+            # No match — maybe rate-limited or page changed; retry with backoff
+            time.sleep(1.5 * (i + 1))
+        except Exception:
+            time.sleep(1.5 * (i + 1))
+    return None
+
+
 def fetch(token):
     """Collect every fact the face needs. Returns one dict, or raises."""
 
@@ -165,6 +202,13 @@ def fetch(token):
             f"the API answered the repository list with an empty body"
         )
 
+    # The live Telegram subscriber count is scraped from the public preview
+    # page so the "join" card carries the real channel figure, not the
+    # GitHub follower count. If the scrape fails (no network, page change)
+    # the value is None and the card omits the number - rule 3: a figure
+    # that cannot be live is better absent than wrong.
+    tg_members = scrape_telegram_members()
+
     facts = {
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "account": {
@@ -173,6 +217,7 @@ def fetch(token):
             "bio": (account.get("bio") or "").strip(),
             "public_repos": account.get("public_repos", 0),
             "followers": account.get("followers", 0),
+            "telegram_members": tg_members,
             "created_at": account.get("created_at"),
         },
         "projects": [],
@@ -299,6 +344,14 @@ def render(facts, picked, windowed):
         "stars": str(stars),
         "followers": str(acc["followers"]),
     }
+    # The join card prints the live Telegram member count. It is a genuine
+    # live figure scraped this run - not a fixed number - so it gets
+    # provenance too. Only declared when the scrape succeeded; when it
+    # failed (None), the card omits the number and there is nothing to
+    # trace.
+    tg = acc.get("telegram_members")
+    if tg is not None:
+        numbers["telegram_members"] = str(tg)
     # Each row prints its own star count and age, so each row's figures get
     # provenance too - rule 3 is per printed number, not per section.
     for p_ in picked:
@@ -493,14 +546,14 @@ def write_stats_svg(facts, out_path):
 def write_join_svg(facts, out_path):
     """Render the Telegram "join" call-to-action as a live SVG card.
 
-    The handle and the channel figure are read from this run's fetch so the
-    card can never print a channel count that has since moved - the same
-    rule-3 guarantee the stats tiles carry. The card is a link: the whole
-    rectangle is an anchor to the channel, not plain prose.
+    The figure is the live Telegram subscriber count scraped this run (rule 3).
+    If the scrape returned None the number block is omitted - a figure that
+    cannot be live is better absent than wrong. The whole card is an anchor
+    to the channel.
     """
     acc = facts["account"]
     login = ascii_only(str(acc.get("login", "GatewayIRAN"))).strip() or "GatewayIRAN"
-    followers = int(acc.get("followers", 0))
+    members = acc.get("telegram_members")   # live Telegram count, or None
     channel = f"{login}"
     handle = f"@{channel}"
 
@@ -523,7 +576,7 @@ def write_join_svg(facts, out_path):
         '</defs>',
         # the whole card is the link target
         f'<a href="https://t.me/{_svg_escape(channel)}" target="_blank" '
-        f'aria-label="Join the Telegram channel">{_join_card_inner(followers)}'
+        f'aria-label="Join the Telegram channel">{_join_card_inner(members)}'
         '<g></g></a>',
         '</svg>',
         '',
@@ -533,37 +586,48 @@ def write_join_svg(facts, out_path):
     return svg_text
 
 
-def _join_card_inner(followers):
-    """The card body: panel, Telegram glyph, headline, CTA button, live figure."""
+def _join_card_inner(members):
+    """The card body: panel, Telegram glyph, headline, CTA button, live figure.
+
+    If members is None the live-figure block is omitted (rule 3: a number
+    that cannot be live is better absent than wrong).
+    """
     W, H = 1180, 180
     font = ("ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', "
             "Roboto, 'Helvetica Neue', Arial, sans-serif")
+
+    # Build the live figure block only when a count is available
+    fig_block = ""
+    if members is not None:
+        fig_block = (
+            f'<text x="{W-32}" y="72" text-anchor="end" font-size="36" font-weight="800" '
+            f'fill="url(#jbtn)">{_svg_escape(str(members))}</text>'
+            f'<text x="{W-32}" y="100" text-anchor="end" font-size="14" '
+            f'letter-spacing="2" fill="#9aa7bd">{_svg_escape("MEMBERS")}</text>'
+            f'<text x="{W-32}" y="120" text-anchor="end" font-size="13" '
+            f'fill="#6e7b94">{_svg_escape("live · this run")}</text>'
+        )
+
     return (
         f'<g font-family="{font}">'
         f'<rect x="8" y="8" width="{W-16}" height="{H-16}" rx="22" '
         f'fill="url(#jbg)" stroke="#22314f"/>'
         # Telegram glyph - a paper-plane on a rounded badge
-        '<g transform="translate(70 58)">'
+        '<g transform="translate(70 88)">'
         '<circle r="42" fill="url(#jtg)"/>'
-        # paper plane, drawn in the brand white with a folded shadow
         '<path d="M-20 6 L20 -14 L8 4 L2 2 Z" fill="#ffffff"/>'
         '<path d="M8 4 L20 -14 L6 -2 Z" fill="#bfe9ff"/>'
         '</g>'
         # headline + sub
-        f'<text x="140" y="82" font-size="30" font-weight="800" fill="#e8f0ff">'
+        f'<text x="140" y="78" font-size="30" font-weight="800" fill="#e8f0ff">'
         f'{_svg_escape("Join the channel")}</text>'
-        f'<text x="140" y="112" font-size="16" fill="#9aa7bd">'
+        f'<text x="140" y="108" font-size="16" fill="#9aa7bd">'
         f'{_svg_escape("Announcements, write-ups and release notes land first here.")}'
         f'</text>'
         # CTA button
         f'<g>{_join_cta()}</g>'
-        # the live figure - a number that refreshes every run (rule 3)
-        f'<text x="{W-32}" y="82" text-anchor="end" font-size="34" font-weight="800" '
-        f'fill="url(#jbtn)">{_svg_escape(str(followers))}</text>'
-        f'<text x="{W-32}" y="108" text-anchor="end" font-size="14" '
-        f'letter-spacing="2" fill="#6e7b94">{_svg_escape("FOLLOWERS")}</text>'
-        f'<text x="{W-32}" y="128" text-anchor="end" font-size="13" '
-        f'fill="#6e7b94">{_svg_escape("live · this run")}</text>'
+        # live figure block (omitted when members is None)
+        f'{fig_block}'
         '</g>'
     )
 
