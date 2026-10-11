@@ -55,7 +55,7 @@ jobs:
         run: |
           git config user.name "GatewayIRAN"
           git config user.email "310923460+GatewayIRAN@users.noreply.github.com"
-          git add README.md assets/stats.svg assets/banner.svg
+          git add README.md assets/stats.svg assets/banner.svg assets/join.svg
           if git diff --cached --quiet; then
             echo "face already current"
             exit 0

@@ -21,12 +21,15 @@ GatewayIRAN is a collection of small, self-contained open-source projects. 3 pub
 
 ## Follow along
 
-Announcements and write-ups land on the [Telegram channel](https://t.me/GatewayIRAN).
+<a href="https://t.me/GatewayIRAN" target="_blank" aria-label="Join the GatewayIRAN Telegram channel">
+<img src="assets/join.svg" alt="Join the GatewayIRAN Telegram channel" width="100%">
+</a>
+
 Every project keeps its own issue tracker; the fastest way to reach the account is
 to open an issue on the project it concerns.
 
 <img src="assets/divider.svg" alt="" width="100%">
 
 <div align="center">
-  <sub><b>GATEWAYIRAN</b> - regenerated automatically - last run 2026-10-11T23:35:35+00:00</sub>
+  <sub><b>GATEWAYIRAN</b> - regenerated automatically - last run 2026-10-11T11:53:03+00:00</sub>
 </div>

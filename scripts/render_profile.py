@@ -351,8 +351,16 @@ def render(facts, picked, windowed):
     a('')
     a('## Follow along')
     a('')
-    a(f'Announcements and write-ups land on the '
-      f'[Telegram channel]({facts.get("channel_url", "https://t.me/GatewayIRAN")}).')
+    # The "join" call-to-action is a live SVG card, not prose: the Telegram
+    # glyph, the headline and a CTA button, with the follower count read from
+    # this run so it never sits stale (rule 3). The card is a link to the
+    # channel, so it reads as artwork rather than a line of text.
+    a('<a href="{url}" target="_blank" '
+      'aria-label="Join the GatewayIRAN Telegram channel">'.replace('{url}',
+      _svg_escape(str(facts.get("channel_url", "https://t.me/GatewayIRAN")))))
+    a('<img src="assets/join.svg" alt="Join the GatewayIRAN Telegram channel" width="100%">')
+    a('</a>')
+    a('')
     a('Every project keeps its own issue tracker; the fastest way to reach the account is')
     a('to open an issue on the project it concerns.')
     a('')
@@ -482,6 +490,95 @@ def write_stats_svg(facts, out_path):
     pathlib.Path(out_path).write_text("\n".join(parts), encoding="utf-8")
 
 
+def write_join_svg(facts, out_path):
+    """Render the Telegram "join" call-to-action as a live SVG card.
+
+    The handle and the channel figure are read from this run's fetch so the
+    card can never print a channel count that has since moved - the same
+    rule-3 guarantee the stats tiles carry. The card is a link: the whole
+    rectangle is an anchor to the channel, not plain prose.
+    """
+    acc = facts["account"]
+    login = ascii_only(str(acc.get("login", "GatewayIRAN"))).strip() or "GatewayIRAN"
+    followers = int(acc.get("followers", 0))
+    channel = f"{login}"
+    handle = f"@{channel}"
+
+    W, H = 1180, 180
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+        f'viewBox="0 0 {W} {H}" role="img" aria-label="Join the Telegram channel">',
+        '<title>Join the Telegram channel</title>',
+        '<defs>',
+        '<linearGradient id="jbg" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#101a30"/>'
+        '<stop offset="0.5" stop-color="#0d1428"/>'
+        '<stop offset="1" stop-color="#101c3a"/></linearGradient>',
+        '<linearGradient id="jtg" x1="0" y1="0" x2="1" y2="1">'
+        '<stop offset="0" stop-color="#38bdf8"/>'
+        '<stop offset="1" stop-color="#22d3ee"/></linearGradient>',
+        '<linearGradient id="jbtn" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#5eead4"/>'
+        '<stop offset="1" stop-color="#8b5cf6"/></linearGradient>',
+        '</defs>',
+        # the whole card is the link target
+        f'<a href="https://t.me/{_svg_escape(channel)}" target="_blank" '
+        f'aria-label="Join the Telegram channel">{_join_card_inner(followers)}'
+        '<g></g></a>',
+        '</svg>',
+        '',
+    ]
+    svg_text = "\n".join(parts)
+    pathlib.Path(out_path).write_text(svg_text, encoding="utf-8")
+    return svg_text
+
+
+def _join_card_inner(followers):
+    """The card body: panel, Telegram glyph, headline, CTA button, live figure."""
+    W, H = 1180, 180
+    font = ("ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', "
+            "Roboto, 'Helvetica Neue', Arial, sans-serif")
+    return (
+        f'<g font-family="{font}">'
+        f'<rect x="8" y="8" width="{W-16}" height="{H-16}" rx="22" '
+        f'fill="url(#jbg)" stroke="#22314f"/>'
+        # Telegram glyph - a paper-plane on a rounded badge
+        '<g transform="translate(70 58)">'
+        '<circle r="42" fill="url(#jtg)"/>'
+        # paper plane, drawn in the brand white with a folded shadow
+        '<path d="M-20 6 L20 -14 L8 4 L2 2 Z" fill="#ffffff"/>'
+        '<path d="M8 4 L20 -14 L6 -2 Z" fill="#bfe9ff"/>'
+        '</g>'
+        # headline + sub
+        f'<text x="140" y="82" font-size="30" font-weight="800" fill="#e8f0ff">'
+        f'{_svg_escape("Join the channel")}</text>'
+        f'<text x="140" y="112" font-size="16" fill="#9aa7bd">'
+        f'{_svg_escape("Announcements, write-ups and release notes land first here.")}'
+        f'</text>'
+        # CTA button
+        f'<g>{_join_cta()}</g>'
+        # the live figure - a number that refreshes every run (rule 3)
+        f'<text x="{W-32}" y="82" text-anchor="end" font-size="34" font-weight="800" '
+        f'fill="url(#jbtn)">{_svg_escape(str(followers))}</text>'
+        f'<text x="{W-32}" y="108" text-anchor="end" font-size="14" '
+        f'letter-spacing="2" fill="#6e7b94">{_svg_escape("FOLLOWERS")}</text>'
+        f'<text x="{W-32}" y="128" text-anchor="end" font-size="13" '
+        f'fill="#6e7b94">{_svg_escape("live · this run")}</text>'
+        '</g>'
+    )
+
+
+def _join_cta():
+    label = "Follow @GatewayIRAN"
+    bx, by, bw, bh = 140, 130, 260, 44
+    return (
+        f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="{bh//2}" '
+        f'fill="url(#jbtn)"/>'
+        f'<text x="{bx + bw//2}" y="{by + 29}" text-anchor="middle" font-size="18" '
+        f'font-weight="700" fill="#0a0e1a">{_svg_escape(label)}</text>'
+    )
+
+
 def face_dir(root):
     """Where the profile face lives in this checkout.
 
@@ -544,6 +641,7 @@ def main(argv=None):
     assets.mkdir(parents=True, exist_ok=True)
     write_stats_svg(facts, assets / "stats.svg")
     write_banner_facts(facts, picked, windowed, assets / "banner.svg")
+    write_join_svg(facts, assets / "join.svg")
     print(f"render_profile: wrote {face} "
           f"({len(top_full)} projects, {len(numbers)} live numbers)")
     return 0
