@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="196" viewBox="0 0 1180 196" role="img" aria-label="join the GatewayIRAN Telegram channel — releases, how-tos and comparisons">
+  <title>به کانال تلگرام GatewayIRAN بپیوندید</title>
+  <defs>
+    <linearGradient id="ctabg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#141033"/>
+      <stop offset="0.55" stop-color="#101a35"/>
+      <stop offset="1" stop-color="#0d2328"/>
+    </linearGradient>
+    <linearGradient id="ctagate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <linearGradient id="ctaplane" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="gg" gradientUnits="userSpaceOnUse" x1="113" y1="31" x2="348" y2="310">
+    <stop offset="0" stop-color="#4E7BFF"/>
+    <stop offset="0.5" stop-color="#7DA2FF"/>
+    <stop offset="1" stop-color="#BFD4FF"/>
+  </linearGradient>
+</defs>
+
+  <rect width="1180" height="196" rx="18" fill="url(#ctabg)"/>
+  <rect x="0.5" y="0.5" width="1179" height="195" rx="17.5" fill="none" stroke="#3b3f77"/>
+
+  <!-- GatewayIRAN mark, left -->
+  <g transform="translate(150 98) scale(0.30) translate(-204 -170)">
+    <path fill="url(#gg)" d="M159 31 H302 A68 68 0 0 1 369.86 95 H170 A16 16 0 0 0 154 111 V231 A16 16 0 0 0 170 247 H290 A16 16 0 0 0 306 231 V197 H243 A16 26.5 0 0 1 243 144 H370 V242 A68 68 0 0 1 302 310 H159 A68 68 0 0 1 91 242 V99 A68 68 0 0 1 159 31 Z"/>
+    <rect x="50" y="202" width="80" height="24" rx="12" fill="#17A34A" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="214" r="4.2" fill="#FFFFFF"/>
+    <circle cx="86" cy="214" r="4.2" fill="#FFFFFF"/>
+    <rect x="50" y="235" width="80" height="24" rx="12" fill="#FFFFFF" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="247" r="4.2" fill="#0B1030"/>
+    <circle cx="86" cy="247" r="4.2" fill="#0B1030"/>
+    <rect x="50" y="269" width="80" height="24" rx="12" fill="#E11B2C" stroke="#0B1030" stroke-width="4.5"/>
+    <circle cx="68" cy="281" r="4.2" fill="#FFFFFF"/>
+    <circle cx="86" cy="281" r="4.2" fill="#FFFFFF"/>
+  </g>
+
+  <!-- telegram plane, right -->
+  <g transform="translate(1006 62)">
+    <circle cx="0" cy="0" r="38" fill="#2dd4bf" opacity="0.12"/>
+    <path d="M -20 2 L 22 -16 L 8 20 L 0 7 Z M 0 7 L 8 20 L 12 2" fill="url(#ctaplane)" stroke="url(#ctaplane)" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+
+  <g font-family="Vazirmatn, ui-sans-serif, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif" text-anchor="start" direction="rtl">
+    <text x="1044" y="84" font-size="36" font-weight="800" fill="#e6edf3">به کانال تلگرام GatewayIRAN بپیوندید</text>
+    <text x="1044" y="128" font-size="19" fill="#a9b6cf">تازه‌ترین ابزارها، آموزش‌ها و مقایسه‌ها — همین‌جا منتشر می‌شود</text>
+  </g>
+  <g font-family="ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace" text-anchor="end">
+    <text x="940" y="164" font-size="17" font-weight="700" fill="#5eead4">t.me/GatewayIRAN</text>
+  </g>
+</svg>
