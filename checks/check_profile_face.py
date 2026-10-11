@@ -132,6 +132,11 @@ SLUG_RE = re.compile(r"\b[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\b")
 # ordinary words joined by a slash are prose ("and/or", "CI/CD"), never a repo
 PROSE_WORDS = {"and", "or", "of", "to", "in", "on", "for", "vs", "per",
                "via", "the", "a", "an", "is", "are", "ci", "cd", "etc"}
+# a plain web origin that is not one of the judged forges; keeps xmlns and
+# documentation links like www.w3.org/2000/svg out of the slug scan
+DOMAIN_HEAD_RE = re.compile(
+    r"^[a-z0-9-]+(\.[a-z0-9-]+)+\.(?:org|net|com|io|dev|sh|app|ai|edu|gov|co)$",
+    re.I)
 
 
 def project_mentions(text, prov):
@@ -161,6 +166,8 @@ def project_mentions(text, prov):
         head = mention.split("/")[0].lower()
         if head in LAYOUT_DIRS or head in FORGE_HOSTS:
             continue
+        if DOMAIN_HEAD_RE.match(head):
+            continue  # a plain web origin, not a forge we judge
         if head in PROSE_WORDS or stem in PROSE_WORDS:
             continue  # prose joined by a slash, not a repository
         if mention.lower() not in prov["projects"]:
@@ -292,12 +299,37 @@ def check(root, template=None):
     # owner banned both on the face as a whole - so the assets directory is
     # scanned too, with the same denylist. A clean README cannot launder a
     # stack out of an image it embeds.
-    for asset in sorted((face.parent / "assets").glob("*.svg")):
+    for asset in sorted((face.parent / "assets").rglob("*.svg")):
         atext = asset.read_text(encoding="utf-8", errors="replace")
-        # captions only: strip every tag so colour codes and paths are ignored
+        # Captions AND attribute values both count. Strip every tag so colour
+        # codes and path data are ignored, then add back every quoted
+        # attribute value: an href, an aria-label, a title or a data-* figure
+        # carries exactly the claim a caption would.
         aclean = re.sub(r"<[^>]*>", " ", atext)
         for m in re.finditer(r">([^<]{2,60})<", atext):
             aclean += " " + m.group(1)
+        aclean += " " + " ".join(re.findall(r"\"([^\"]{2,120})\"", atext))
+        # Rule 3 gets the same layout exemption the README scan does: x, y,
+        # width, height, viewBox, font-size and the like are dimensions of the
+        # page's own artwork, not quantities about the account. So for the
+        # number scan, only the quoted attribute values that are NOT layout
+        # attributes are re-added to the caption text. (Full attribute values
+        # still feed rules 1 and 2 above.)
+        anums = re.sub(r"<[^>]*>", " ", atext)
+        for m in re.finditer(r">([^<]{2,60})<", atext):
+            anums += " " + m.group(1)
+        LAYOUT_ATTRS = {
+            "viewbox", "width", "height", "x", "y", "cx", "cy", "r", "rx",
+            "ry", "dx", "dy", "x1", "y1", "x2", "y2", "points", "d",
+            "transform", "font-size", "opacity", "stroke-width",
+            "startoffset", "offset", "stroke-linecap", "stroke-linejoin",
+            "xmlns", "xmlns:xlink", "version", "preserveaspectratio",
+            "fill", "stroke", "stop-color", "stop-opacity",
+        }
+        for m in re.finditer(
+                r"([a-zA-Z-]+)\s*=\s*\"([^\"]{2,120})\"", atext):
+            if m.group(1).lower() not in LAYOUT_ATTRS:
+                anums += " " + m.group(2)
         alow = re.sub(r"https?://", " ", aclean.lower())
         for tok in STACK_TOKENS:
             if tok in prov["tokens"]:
@@ -318,13 +350,14 @@ def check(root, template=None):
         # Rules 2 and 3 bind the artwork to provenance too: a project the
         # generator did not derive, or a volatile number the run did not
         # compute, is exactly as hard-coded in an SVG caption as in prose.
+        # Rule 3 uses anums, where layout dimensions are already exempt.
         for idx, mention in project_mentions(aclean, prov):
             problems.append(
                 f"{asset}: rule 2 (no hard-coded project): the artwork "
                 f"mentions {mention!r} which the generator did not derive "
                 "from the API this run"
             )
-        for idx, word, num in volatile_numbers(aclean, prov):
+        for idx, word, num in volatile_numbers(anums, prov):
             problems.append(
                 f"{asset}: rule 3 (no fixed varying number): the artwork puts "
                 f"{num!r} next to {word!r} with no provenance in this run"
@@ -414,6 +447,7 @@ projects: a/b, c/d
                 a = p / "assets"
                 a.mkdir(parents=True, exist_ok=True)
                 for name, svg in extra_assets.items():
+                    (a / name).parent.mkdir(parents=True, exist_ok=True)
                     (a / name).write_text(svg, encoding="utf-8")
             return check(d)
 
@@ -486,6 +520,34 @@ projects: a/b, c/d
     if run(GOOD, {"ok.svg": "<svg><text>4 repos 9 stars</text></svg>"}) != 0:
         print("SELF-TEST FAIL: rule 3 rejected provenance numbers in artwork",
               file=sys.stderr)
+        ok = False
+    # SVG attributes are scanned exactly like captions
+    if run(GOOD, {"bad.svg": '<svg><a href="https://github.com/totally/otherrepo">'
+                             "<text>x</text></a></svg>"}) == 0:
+        print("SELF-TEST FAIL: rule 2 (forge link in an SVG attribute) "
+              "not caught", file=sys.stderr)
+        ok = False
+    if run(GOOD, {"bad.svg": '<svg font-family="Docker Sans"><text>x</text></svg>'}) == 0:
+        print("SELF-TEST FAIL: rule 1 (stack word in an SVG attribute) "
+              "not caught", file=sys.stderr)
+        ok = False
+    if run(GOOD, {"bad.svg": '<svg data-x="9999 repositories"><text>x</text></svg>'}) == 0:
+        print("SELF-TEST FAIL: rule 3 (hard-coded number in an SVG attribute) "
+              "not caught", file=sys.stderr)
+        ok = False
+    # a normal SVG - xmlns, viewBox, geometry, a provenance number - stays
+    # legal: layout dimensions are exempt from rule 3 like the README scan
+    if run(GOOD, {"ok.svg": '<svg xmlns="http://www.w3.org/2000/svg" '
+                            'viewBox="0 0 600 180" width="600" height="180">'
+                            '<rect x="10" y="20" width="100" height="40">'
+                            '<text>4 repos 9 stars</text></rect></svg>'}) != 0:
+        print("SELF-TEST FAIL: gate rejected a normal SVG's layout geometry "
+              "or provenance numbers", file=sys.stderr)
+        ok = False
+    # nested artwork is scanned too
+    if run(GOOD, {"sub/bad.svg": "<svg><text>9999 repositories</text></svg>"}) == 0:
+        print("SELF-TEST FAIL: rule 3 (hard-coded number in nested artwork) "
+              "not caught", file=sys.stderr)
         ok = False
     # rule 3 - a volatile number that is NOT among the provenance numbers.
     # The fixture declares repos=4 and stars=9, so 12 must fail.
