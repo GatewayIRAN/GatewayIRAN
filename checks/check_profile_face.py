@@ -121,6 +121,66 @@ NUMBER_RE = re.compile(r"\b\d[\d,]*\.?\d*\b")
 PERCENT_RE = re.compile(r"\d+%")
 VOLATILE_RE = re.compile(r"\b(?:" + "|".join(VOLATILE_WORDS) + r")\b", re.I)
 
+ASSET_EXT = (".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+             ".css", ".js", ".woff", ".woff2", ".ttf")
+LAYOUT_DIRS = ("assets", "static", "media", "img", "images", "files")
+FORGE_HOSTS = ("github.com", "t.me", "gitlab.com", "codeberg.org")
+FORGE_URL_RE = re.compile(
+    r"\b(?:github\.com|gitlab\.com|codeberg\.org)/"
+    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", re.I)
+SLUG_RE = re.compile(r"\b[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\b")
+# ordinary words joined by a slash are prose ("and/or", "CI/CD"), never a repo
+PROSE_WORDS = {"and", "or", "of", "to", "in", "on", "for", "vs", "per",
+               "via", "the", "a", "an", "is", "are", "ci", "cd", "etc"}
+
+
+def project_mentions(text, prov):
+    """Every project-shaped mention in text that provenance does not clear.
+
+    Two shapes matter: a forge URL (host/owner/repo) and a bare owner/name
+    slug. Asset files the face itself loads, layout dirs, the account's own
+    profile/channel links and ordinary words joined by a slash are not
+    project mentions. Every other mention must be an exact owner/name pair
+    present in this run's provenance 'projects:' list.
+    """
+    found = []
+    spans = []
+    for m in FORGE_URL_RE.finditer(text):
+        spans.append(m.span())
+        if m.group(2).lower().endswith(ASSET_EXT):
+            continue  # a file the face itself loads is layout
+        if f"{m.group(1)}/{m.group(2)}".lower() not in prov["projects"]:
+            found.append((m.start(), m.group(0)))
+    for m in SLUG_RE.finditer(text):
+        if any(s <= m.start() < e for s, e in spans):
+            continue  # already judged as a URL pair above
+        mention = m.group(0)
+        stem = mention.split("/")[-1].lower()
+        if stem.endswith(ASSET_EXT):
+            continue  # an asset the face itself loads is layout
+        head = mention.split("/")[0].lower()
+        if head in LAYOUT_DIRS or head in FORGE_HOSTS:
+            continue
+        if head in PROSE_WORDS or stem in PROSE_WORDS:
+            continue  # prose joined by a slash, not a repository
+        if mention.lower() not in prov["projects"]:
+            found.append((m.start(), mention))
+    return found
+
+
+def volatile_numbers(text, prov):
+    """Volatile-number windows whose figures have no provenance in this run."""
+    hits = []
+    for m in VOLATILE_RE.finditer(text):
+        window = PERCENT_RE.sub(" ", text[max(0, m.start() - 60): m.end() + 60])
+        for n in NUMBER_RE.finditer(window):
+            val = n.group(0).replace(",", "")
+            if val in {v.replace(",", "") for v in prov["numbers"].values()}:
+                continue
+            hits.append((m.start(), m.group(0), n.group(0)))
+            break
+    return hits
+
 
 
 ALLOWED_SYMBOLS = set("\u00a0\u2013\u2014\u2018\u2019\u201c\u201d"
@@ -198,12 +258,15 @@ def check(root, template=None):
     body = visible_text(raw)
 
     # Layout attributes are dimensions of the page's own artwork (width,
-    # height, viewBox, font-size and so on). They are not quantities about the
-    # account, so rule 3 does not apply to them; without this the number 42 in
-    # an icon's height attribute sits six words from "repositories" and is
-    # reported as a fabricated figure.
-    body = re.sub(r"\b[a-zA-Z-]+\s*=\s*\"[^\"]*\"", " \"", body)
-    body = re.sub(r"\b[a-zA-Z-]+\s*=\s*'[^']*'", " '", body)
+    # height, viewBox, font-size and so on). They are not quantities about
+    # the account, so rule 3 does not apply to them; without this the number
+    # 42 in an icon's height attribute sits six words from "repositories" and
+    # is reported as a fabricated figure. Rules 1 and 2 deliberately scan the
+    # UNSCRIPPED text: a stack, a project name or a forge link carries the
+    # same meaning in an href, an alt or a caption as it does in prose, and
+    # an attribute is exactly where a hard-coded mention prefers to hide.
+    numtext = re.sub(r"\b[a-zA-Z-]+\s*=\s*\"[^\"]*\"", " \"", body)
+    numtext = re.sub(r"\b[a-zA-Z-]+\s*=\s*'[^']*'", " '", numtext)
 
     # Rule 4 - byte level, no false negatives on script. Any non-ASCII fails,
     # except the decorative symbols the face uses as section markers. Emoji are
@@ -252,6 +315,20 @@ def check(root, template=None):
                     f"U+{ord(ch):04X}"
                 )
                 break
+        # Rules 2 and 3 bind the artwork to provenance too: a project the
+        # generator did not derive, or a volatile number the run did not
+        # compute, is exactly as hard-coded in an SVG caption as in prose.
+        for idx, mention in project_mentions(aclean, prov):
+            problems.append(
+                f"{asset}: rule 2 (no hard-coded project): the artwork "
+                f"mentions {mention!r} which the generator did not derive "
+                "from the API this run"
+            )
+        for idx, word, num in volatile_numbers(aclean, prov):
+            problems.append(
+                f"{asset}: rule 3 (no fixed varying number): the artwork puts "
+                f"{num!r} next to {word!r} with no provenance in this run"
+            )
 
     # Rule 1 - stack token denylist, cleared only by the provenance tokens.
     # Link protocols are stripped first: https:// in a markdown link is the URL
@@ -274,69 +351,24 @@ def check(root, template=None):
             )
             break
 
-    # Rule 2 - every project named must be one the generator derived this run.
-    # Two mention shapes matter: a forge URL (github.com/owner/repo) and a bare
-    # owner/name slug. Local asset paths, layout dirs and the account's own
-    # profile/channel links are layout or the account itself, not a project the
-    # face is naming. Every surviving mention must normalize to an exact
-    # owner/name pair present in this run's provenance 'projects:' list.
-    ASSET_EXT = (".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
-                 ".css", ".js", ".woff", ".woff2", ".ttf")
-    url_spans = []
-    for m in re.finditer(
-            r"\b(?:github\.com|gitlab\.com|codeberg\.org)/"
-            r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", body, re.I):
-        url_spans.append(m.span())
-        if m.group(2).lower().endswith(ASSET_EXT):
-            continue  # a file the face itself loads is layout
-        pair = f"{m.group(1)}/{m.group(2)}".lower()
-        if pair not in prov["projects"]:
-            line = low.count("\n", 0, m.start()) + 1
-            problems.append(
-                f"{face}:{line}: rule 2 (no hard-coded project): links "
-                f"{m.group(0)!r} which the generator did not derive from the "
-                "API this run"
-            )
-    for m in re.finditer(r"\b[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\b", body):
-        if any(s <= m.start() < e for s, e in url_spans):
-            continue  # already judged as a URL pair above
-        mention = m.group(0)
-        stem = mention.split("/")[-1].lower()
-        # an asset the face itself loads is layout, not a project mention
-        if stem.endswith(ASSET_EXT):
-            continue
-        # a bare relative path with no extension in a known layout dir
-        head = mention.split("/")[0].lower()
-        if head in ("assets", "static", "media", "img", "images", "files"):
-            continue
-        # the account's own profile link and channel link are the account
-        # itself, not a project the face is naming
-        if head in ("github.com", "t.me", "gitlab.com", "codeberg.org"):
-            continue
-        # the mention must BE a derived pair, owner and repo together
-        if mention.lower() not in prov["projects"]:
-            line = low.count("\n", 0, m.start()) + 1
-            problems.append(
-                f"{face}:{line}: rule 2 (no hard-coded project): mentions "
-                f"{m.group(0)!r} which the generator did not derive from the "
-                "API this run"
-            )
+    # Rule 2 - every project named must be one the generator derived this
+    # run. Prose, attributes and captions all count: the provenance
+    # 'projects:' list is the only thing that clears a mention.
+    for idx, mention in project_mentions(body, prov):
+        line = body.count("\n", 0, idx) + 1
+        problems.append(
+            f"{face}:{line}: rule 2 (no hard-coded project): mentions "
+            f"{mention!r} which the generator did not derive from the "
+            "API this run"
+        )
 
     # Rule 3 - a volatile number must be traceable to provenance.
-    for m in VOLATILE_RE.finditer(body):
-        window = body[max(0, m.start() - 60): m.end() + 60]
-        # layout percentages are removed before the number scan
-        window = PERCENT_RE.sub(" ", window)
-        for n in NUMBER_RE.finditer(window):
-            val = n.group(0).replace(",", "")
-            if val in {v.replace(",", "") for v in prov["numbers"].values()}:
-                continue
-            line = low.count("\n", 0, m.start()) + 1
-            problems.append(
-                f"{face}:{line}: rule 3 (no fixed varying number): {n.group(0)!r} "
-                f"next to {m.group(0)!r} has no provenance in this run"
-            )
-            break
+    for idx, word, num in volatile_numbers(numtext, prov):
+        line = numtext.count("\n", 0, idx) + 1
+        problems.append(
+            f"{face}:{line}: rule 3 (no fixed varying number): {num!r} "
+            f"next to {word!r} has no provenance in this run"
+        )
 
     # Rule 5 - the account-level framing marker must be present.
     if "profile-face:account-scope" not in raw:
@@ -373,11 +405,16 @@ projects: a/b, c/d
 <p>A living view of the account, refreshed on every run.</p>
 """
 
-    def run(text):
+    def run(text, extra_assets=None):
         with tempfile.TemporaryDirectory() as d:
             p = pathlib.Path(d) / "content" / "profile"
             p.mkdir(parents=True)
             (p / "README.md").write_text(text, encoding="utf-8")
+            if extra_assets:
+                a = p / "assets"
+                a.mkdir(parents=True, exist_ok=True)
+                for name, svg in extra_assets.items():
+                    (a / name).write_text(svg, encoding="utf-8")
             return check(d)
 
     if run(GOOD) != 0:
@@ -411,6 +448,43 @@ projects: a/b, c/d
     if run(GOOD.replace("refreshed on every run",
                         "channel at https://t.me/a")) != 0:
         print("SELF-TEST FAIL: rule 2 rejected the account channel link",
+              file=sys.stderr)
+        ok = False
+    # attributes are scanned like prose: href and alt hide nothing
+    if run(GOOD.replace('alt="x"',
+                        'alt="x" href="https://github.com/someone/evilrepo"')) == 0:
+        print("SELF-TEST FAIL: rule 2 (hard-coded project in an attribute) "
+              "not caught", file=sys.stderr)
+        ok = False
+    if run(GOOD.replace('alt="x"', 'alt="someone/evilrepo"')) == 0:
+        print("SELF-TEST FAIL: rule 2 (slug in alt text) not caught",
+              file=sys.stderr)
+        ok = False
+    if run(GOOD.replace('alt="x"', 'alt="a rust thing"')) == 0:
+        print("SELF-TEST FAIL: rule 1 (stack word in an attribute) not caught",
+              file=sys.stderr)
+        ok = False
+    if run(GOOD.replace('alt="x"',
+                        'alt="x" href="https://github.com/a/b"')) != 0:
+        print("SELF-TEST FAIL: rule 2 rejected a derived link in an attribute",
+              file=sys.stderr)
+        ok = False
+    if run(GOOD.replace("refreshed on every run",
+                        "licensed for reuse, and/or mirroring")) != 0:
+        print("SELF-TEST FAIL: rule 2 rejected the prose 'and/or'",
+              file=sys.stderr)
+        ok = False
+    # rules 2 and 3 bind the artwork as well as the prose
+    if run(GOOD, {"bad.svg": "<svg><text>9999 repositories</text></svg>"}) == 0:
+        print("SELF-TEST FAIL: rule 3 (hard-coded number in artwork) "
+              "not caught", file=sys.stderr)
+        ok = False
+    if run(GOOD, {"bad.svg": "<svg><text>see x/y</text></svg>"}) == 0:
+        print("SELF-TEST FAIL: rule 2 (hard-coded project in artwork) "
+              "not caught", file=sys.stderr)
+        ok = False
+    if run(GOOD, {"ok.svg": "<svg><text>4 repos 9 stars</text></svg>"}) != 0:
+        print("SELF-TEST FAIL: rule 3 rejected provenance numbers in artwork",
               file=sys.stderr)
         ok = False
     # rule 3 - a volatile number that is NOT among the provenance numbers.

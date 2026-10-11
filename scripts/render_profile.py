@@ -565,9 +565,18 @@ def main(argv=None):
         return 0
 
     face = face_dir(root) / "README.md"
+    assets = face.parent / "assets"
+    banner = assets / "banner.svg"
+    # Fail before writing anything when the static artwork is missing: the
+    # banner doubles as the template the live facts block is patched into,
+    # and a half-written face is worse than none.
+    if not banner.exists():
+        print(f"render_profile: {banner} is missing; the static artwork "
+              "must exist in the target checkout before --write",
+              file=sys.stderr)
+        return 1
     face.parent.mkdir(parents=True, exist_ok=True)
     face.write_text(body, encoding="utf-8")
-    assets = face.parent / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     write_stats_svg(facts, assets / "stats.svg")
     write_banner_facts(facts, picked, windowed, assets / "banner.svg")
