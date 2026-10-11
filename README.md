@@ -1,83 +1,52 @@
+<!--profile-face:v1
+tokens: cli, design, devops, gateway, gatewayiran, open-source
+numbers: repositories=3, active_projects=3, listed_projects=3, stars=2, followers=1, stars_certway=2, days_certway=2, stars_GatewayIRAN=0, days_GatewayIRAN=0, stars_GatewayIRAN.github.io=0, days_GatewayIRAN.github.io=0
+projects: GatewayIRAN/certway, GatewayIRAN/GatewayIRAN, GatewayIRAN/GatewayIRAN.github.io
+-->
 <div align="center">
-  <img src="assets/banner.svg" alt="GatewayIRAN — open source collection" width="100%">
+  <img src="assets/banner.svg" alt="GatewayIRAN - a live view of this account" width="100%">
   <br><br>
-  <img src="assets/typing.svg" alt="building gateways · certificates · how-tos · comparisons" height="42">
+  <img src="assets/typing.svg" alt="repositories, tools, guides, scripts" height="42">
   <br><br>
-  <a href="https://github.com/GatewayIRAN/certway/releases"><img src="https://img.shields.io/github/v/release/GatewayIRAN/certway?sort=semver&label=release" alt="certway latest release"></a>
-  <a href="https://github.com/GatewayIRAN/certway/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GatewayIRAN/certway?label=license" alt="MIT license"></a>
-  <a href="https://github.com/GatewayIRAN/certway/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/GatewayIRAN/certway/release.yml?branch=main&label=build" alt="release build status"></a>
-  <img src="https://img.shields.io/badge/platform-linux%20%C2%B7%20macos-6e7781" alt="platform linux or macos">
-  <img src="https://img.shields.io/badge/binary-2.1%20MB%20static-1f6feb" alt="2.1 MB static binary">
-  <img src="https://img.shields.io/badge/TLS-ACME%20%C2%B7%20Let%27s%20Encrypt-6e7781" alt="ACME, Let's Encrypt">
-  <br><br>
-  <b>GatewayIRAN is a hub — open tools, how-tos and comparisons for real boxes.</b><br>
-  <sub><b>certway</b> is the flagship of the collection, not the whole story;<br>anything worth shipping lands in this repository family.</sub>
+  <b>A living view of this account, rebuilt from the GitHub API on a schedule.</b><br>
+  <sub>Nothing here is hand-maintained: the projects, the counts and the dates below
+  are read fresh on every run, so the page is never older than its own data.</sub>
 </div>
 
 <img src="assets/divider.svg" alt="" width="100%">
 
-## The collection
+<!--profile-face:account-scope -->
 
-<table>
-<tr>
-<td width="50%"><img src="assets/certway-card.svg" alt="certway — HTTPS in one command: Let's Encrypt or any ACME server, HTTP-01 and DNS-01, renewal on a systemd timer or cron, ECDSA P-256 with zero unsafe code" width="100%"></td>
-<td width="50%"><img src="assets/open-slots.svg" alt="open slots — new tools, how-tos and comparisons land here; the collection is not limited to one project" width="100%"></td>
-</tr>
-</table>
+## What this account is
 
-**certway** — HTTPS in one command. One static binary, no daemon, no Python,
-no OpenSSL on the box:
+GatewayIRAN is a collection of small, self-contained open-source projects. 3 public repositories, 3 of them touched in the active window. Each is maintained on its own, with its own issue tracker and its own release stream, and there is no shared runtime to install across them.
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSfL https://github.com/GatewayIRAN/certway/releases/latest/download/certway-installer.sh | sh
-```
-
-`certway issue example.com` walks the authority for you and writes
-`certs/fullchain.pem` + `certs/privkey.pem`, then `certway install` sets up
-renewal (systemd timer, or cron where systemd is absent). Where certbot is a
-Swiss army knife of plugins, certway is two crates that do one job: ECDSA P-256
-certificates over HTTP-01/DNS-01, for nginx or by hand, with refusal instead of
-guessing when an nginx edit is ambiguous.
-
-[github.com/GatewayIRAN/certway](https://github.com/GatewayIRAN/certway) —
-MIT licensed, built on `ring` and `rustls`, zero unsafe code.
-Reacts to every nginx config change and reloads it for you.
-
-The next tools, how-tos and comparisons arrive in the same shape: one problem,
-one small static binary, no configuration to babysit — keep an eye on the
-[channel](https://t.me/GatewayIRAN) and the
-[releases feed](https://github.com/GatewayIRAN/certway/releases).
-
-<img src="assets/stack.svg" alt="stack: Rust, Shell, GitHub Actions, nginx, systemd, ACME, TLS 1.3" width="100%">
-
-<img src="assets/divider.svg" alt="" width="100%">
+The list below is not curated by hand. It is ranked on every run by recent activity first and stars second, so it shows what is actually alive right now. 3 projects are shown; the rest are one run away from appearing.
 
 ## In numbers
 
-<img src="assets/stats.svg" alt="v1.0.0 latest release with 13 downloadable binaries — MIT license, zero unsafe code — Linux and macOS, one static binary, no runtime — about a thousand readers on Telegram" width="100%">
+<img src="assets/stats.svg" alt="Live account figures" width="100%">
 
 <img src="assets/divider.svg" alt="" width="100%">
 
-## Join the channel
+## Projects, ranked by activity
 
-<div align="center">
-  <img src="assets/cta-fa.svg" alt="به کانال تلگرام GatewayIRAN بپیوندید — تازه‌ترین ابزارها، آموزش‌ها و مقایسه‌ها — t.me/GatewayIRAN" width="100%">
-  <br><br>
-  <a href="https://t.me/GatewayIRAN"><img src="https://img.shields.io/badge/Telegram-Join%20%40GatewayIRAN-2AABEE?style=flat" alt="join the Telegram channel @GatewayIRAN"></a>
-  <br>
-  <sub>Releases, how-tos and comparisons are announced on the channel — in Persian.<br>
-  «به کانال تلگرام <a href="https://t.me/GatewayIRAN">GatewayIRAN</a> بپیوندید.»</sub>
-</div>
+| project | what it is | activity | stars |
+|---|---|---|---|
+| [certway](https://github.com/GatewayIRAN/certway) | maintained in its own repository | 2d ago | 2 |
+| [GatewayIRAN](https://github.com/GatewayIRAN/GatewayIRAN) | maintained in its own repository | today | 0 |
+| [GatewayIRAN.github.io](https://github.com/GatewayIRAN/GatewayIRAN.github.io) | maintained in its own repository | today | 0 |
 
-## Security and license
+<img src="assets/divider.svg" alt="" width="100%">
 
-- 🕵️ Something looks off in a release? [Report a vulnerability privately →](https://github.com/GatewayIRAN/certway/security/advisories/new) — do not open a public issue.
-- 🤝 Want to help the collection grow? [CONTRIBUTING.md →](https://github.com/GatewayIRAN/certway/blob/main/CONTRIBUTING.md)
-- 📦 [Release notes →](https://github.com/GatewayIRAN/certway/releases)
-- ©️ MIT — free to use, free to fork.
+## Follow along
+
+Announcements and write-ups land on the [Telegram channel](https://t.me/GatewayIRAN).
+Every project keeps its own issue tracker; the fastest way to reach the account is
+to open an issue on the project it concerns.
 
 <img src="assets/divider.svg" alt="" width="100%">
 
 <div align="center">
-  <sub><b>GATEWAYIRAN</b> · open tools, how-tos &amp; comparisons · <a href="https://t.me/GatewayIRAN">t.me/GatewayIRAN</a> · <a href="https://gatewayiran.github.io">gatewayiran.github.io</a></sub>
+  <sub><b>GATEWAYIRAN</b> - regenerated automatically - last run 2026-10-11T11:53:03+00:00</sub>
 </div>

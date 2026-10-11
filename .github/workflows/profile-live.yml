@@ -1,0 +1,61 @@
+name: profile-live
+
+# Regenerate the profile face from the GitHub API and commit it back.
+#
+# The owner's rule (A-0044): every figure on the profile is read from the API
+# on each run, so nothing on the page is a fixed number standing for a value
+# that varies in reality. This workflow is the only writer of
+# content/profile/README.md and content/profile/assets/stats.svg.
+#
+# The rendered output is then re-checked by checks/check_profile_face.py, so a
+# generator change that would break one of the five owner rules fails here
+# before it is committed, not days later in the profile.
+
+on:
+  schedule:
+    # every 15 minutes
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: profile-live
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the profile repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate the face from the API
+        run: python scripts/render_profile.py --write
+        env:
+          # the generator reads this through git's credential helper; the token
+          # is never written to a file, a log or the commit message
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-check the five owner rules on the fresh output
+        run: python checks/check_profile_face.py --self-test && python checks/check_profile_face.py --root .
+
+      - name: Commit and push when it changed
+        run: |
+          git config user.name "GatewayIRAN"
+          git config user.email "310923460+GatewayIRAN@users.noreply.github.com"
+          git add content/profile/README.md content/profile/assets/stats.svg
+          if git diff --cached --quiet; then
+            echo "face already current"
+            exit 0
+          fi
+          git commit -m "chore(profile): refresh live face from the API"
+          git push

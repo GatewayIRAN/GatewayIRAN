@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="60" viewBox="0 0 560 60" role="img" aria-label="building gateways, certificates, how-tos, comparisons">
-  <title>building gateways · certificates · how-tos · comparisons</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="60" viewBox="0 0 560 60" role="img" aria-label="building repositories, tools, guides, scripts">
+  <title>building repositories · tools · guides · scripts</title>
   <defs>
     <linearGradient id="tbg" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#0d1428"/>
@@ -12,16 +12,16 @@
     <text x="42" y="37" fill="#9aa7bd">building</text>
 
     <g fill="#5eead4" font-weight="700">
-      <text x="148" y="37">gateways
+      <text x="148" y="37">repositories
         <animate attributeName="opacity" values="1;1;0;0;0;0;0;0;1" keyTimes="0;0.18;0.23;0.25;0.73;0.75;0.95;0.97;1" dur="12s" repeatCount="indefinite"/>
       </text>
-      <text x="148" y="37" opacity="0">certificates
+      <text x="148" y="37" opacity="0">tools
         <animate attributeName="opacity" values="0;0;1;1;0;0;0;0;0" keyTimes="0;0.25;0.3;0.43;0.48;0.5;0.95;0.97;1" dur="12s" repeatCount="indefinite"/>
       </text>
-      <text x="148" y="37" opacity="0">how-tos
+      <text x="148" y="37" opacity="0">guides
         <animate attributeName="opacity" values="0;0;0;0;1;1;0;0;0" keyTimes="0;0.43;0.48;0.5;0.55;0.68;0.73;0.75;1" dur="12s" repeatCount="indefinite"/>
       </text>
-      <text x="148" y="37" opacity="0">comparisons
+      <text x="148" y="37" opacity="0">scripts
         <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;1" keyTimes="0;0.68;0.73;0.75;0.9;0.95;0.97;0.99;1" dur="12s" repeatCount="indefinite"/>
       </text>
     </g>

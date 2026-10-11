@@ -59,15 +59,15 @@
     <rect x="80" y="216" width="148" height="5" rx="2.5" fill="url(#bar)"/>
     <text x="80" y="260" font-size="25" fill="#9aa7bd">Open tools · how-tos · gateways for real boxes</text>
 
-    <g font-size="15" font-weight="600" fill="#cdd9ec" text-anchor="middle">
-      <rect x="80" y="292" width="86" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
-      <text x="123" y="315">MIT</text>
-      <rect x="176" y="292" width="88" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
-      <text x="220" y="315">Rust</text>
-      <rect x="274" y="292" width="164" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
-      <text x="356" y="315">Linux · macOS</text>
-      <rect x="448" y="292" width="92" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
-      <text x="494" y="315">ACME</text>
+    <g font-size="15" font-weight="600" fill="#cdd9ec" text-anchor="middle" id="banner-facts"><!--facts-start-->
+      <rect x="80" y="292" width="214" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
+      <text x="187" y="315">3 public repositories</text>
+      <rect x="306" y="292" width="206" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
+      <text x="409" y="315">3 active this period</text>
+      <rect x="524" y="292" width="197" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
+      <text x="622" y="315">2 stars on the list</text>
+      <rect x="733" y="292" width="128" height="36" rx="18" fill="#13203a" stroke="#27406b"/>
+      <text x="797" y="315">open source</text>
     </g>
   </g>
 </svg>
