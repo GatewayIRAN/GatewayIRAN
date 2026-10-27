@@ -1,6 +1,6 @@
 <!--profile-face:v1
 tokens: cli, design, devops, gateway, gatewayiran, open-source
-numbers: repositories=3, active_projects=3, listed_projects=3, stars=2, followers=1, telegram_members=972, stars_certway=2, days_certway=15, stars_GatewayIRAN=0, days_GatewayIRAN=0, stars_GatewayIRAN.github.io=0, days_GatewayIRAN.github.io=15
+numbers: repositories=3, active_projects=3, listed_projects=3, stars=2, followers=1, telegram_members=972, stars_certway=2, days_certway=15, stars_GatewayIRAN=0, days_GatewayIRAN=0, stars_GatewayIRAN.github.io=0, days_GatewayIRAN.github.io=16
 projects: GatewayIRAN/certway, GatewayIRAN/GatewayIRAN, GatewayIRAN/GatewayIRAN.github.io
 -->
 <div align="center">
@@ -31,5 +31,5 @@ to open an issue on the project it concerns.
 <img src="assets/divider.svg" alt="" width="100%">
 
 <div align="center">
-  <sub><b>GATEWAYIRAN</b> - regenerated automatically - last run 2026-10-27T06:24:23+00:00</sub>
+  <sub><b>GATEWAYIRAN</b> - regenerated automatically - last run 2026-10-27T12:34:50+00:00</sub>
 </div>
